@@ -25,6 +25,11 @@ if [ "$CERTBOTMODE" ]; then
   args+=("--staging");
 fi
 
+#we send everything to proxy before starting to add new domains
+#this will also try to renew domains that already exists
+#I don't think this is a bad idea anyway
+/root/renewAndSendToProxy.sh
+
 #we need to be careful and don't reach the rate limits of Let's Encrypt https://letsencrypt.org/docs/rate-limits/
 #Let's Encrypt has a certificates per registered domain (20 per week) and a names per certificate (100 subdomains) limit
 #so we should create ONE certificiates for a certain domain and add all their subdomains (max 100!)
@@ -38,20 +43,24 @@ for var in $(env | grep -P 'DOMAIN_\d+' | sed  -e 's/=.*//'); do
   dom="";
   for i in "${arr[@]}"
   do
-    let exitcode=tries=0
-    until [ $tries -ge $MAXRETRIES ]
-    do
-      tries=$[$tries+1]
-      certbot-auto certonly --dry-run "${args[@]}" -d "$i" | grep -q 'The dry run was successful.' && break
-      exitcode=$?
+    if [[ -z "${DRYRUN_CHECK}" ]] || [ "${DRYRUN_CHECK}" == "true" ]; then
+      let exitcode=tries=0
+      until [ $tries -ge $MAXRETRIES ]
+      do
+        tries=$[$tries+1]
+        certbot-auto certonly --dry-run "${args[@]}" -d "$i" | grep -q 'The dry run was successful.' && break
+        exitcode=$?
 
-      if [ $tries -eq $MAXRETRIES ]; then
-        printf "${RED}Unable to verify domain ownership after ${tries} attempts.${NC}\n"
-      else
-        printf "${RED}Unable to verify domain ownership, we try again in ${TIMEOUT} seconds.${NC}\n"
-        sleep $TIMEOUT
-      fi
-    done
+        if [ $tries -eq $MAXRETRIES ]; then
+          printf "${RED}Unable to verify domain ownership after ${tries} attempts.${NC}\n"
+        else
+          printf "${RED}Unable to verify domain ownership, we try again in ${TIMEOUT} seconds.${NC}\n"
+          sleep $TIMEOUT
+        fi
+      done
+    else
+      exitcode=0
+    fi
 
     if [ $exitcode -eq 0 ]; then
       printf "Domain $i successfully validated\n"
