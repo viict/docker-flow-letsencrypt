@@ -1,7 +1,7 @@
 Docker Flow: Let's Encrypt  
-[![GitHub release](https://img.shields.io/github/release/hamburml/docker-flow-letsencrypt.svg)]()
-[![license](https://img.shields.io/github/license/hamburml/docker-flow-letsencrypt.svg)]()
-[![Docker Pulls](https://img.shields.io/docker/pulls/hamburml/docker-flow-letsencrypt.svg)]()
+[![GitHub release](https://img.shields.io/github/release/viict/docker-flow-letsencrypt.svg)]()
+[![license](https://img.shields.io/github/license/viict/docker-flow-letsencrypt.svg)]()
+[![Docker Pulls](https://img.shields.io/docker/pulls/viict/docker-flow-letsencrypt.svg)]()
 ==================
 
 * [Introduction](#introduction)
@@ -15,20 +15,20 @@ This project is compatible with Viktor Farcic's [Docker Flow: Proxy](https://git
 It uses certbot-auto to create and renew ssl certificates from Let’s Encrypt for your domains and stores them inside /etc/letsencrypt thus it requires a persistant storage.
 You can bind a folder from the host and use a constraint to make sure the companion service always runs on the same host or use storage plugins such as [rexray](https://github.com/codedellemc/rexray) to allow data to follow your container on other nodes.
 
-The service setups a cron which runs by default two times a day (03:00 and 15:00 UTC) and calls [renewAndSendToProxy](https://github.com/hamburml/docker-flow-letsencrypt/blob/master/renewAndSendToProxy.sh). You can overwrite these cron behavior with the correct environment variables. It runs certbot-auto renew and uploads the certificates to the running [Docker Flow: Proxy](https://github.com/vfarcic/docker-flow-proxy) service.
+The service setups a cron which runs by default two times a day (03:00 and 15:00 UTC) and calls [renewAndSendToProxy](https://github.com/viict/docker-flow-letsencrypt/blob/master/renewAndSendToProxy.sh). You can overwrite these cron behavior with the correct environment variables. It runs certbot-auto renew and uploads the certificates to the running [Docker Flow: Proxy](https://github.com/vfarcic/docker-flow-proxy) service.
 
-You can find this project also on [Docker Hub](https://hub.docker.com/r/hamburml/docker-flow-letsencrypt/).
+You can find this project also on [Docker Hub](https://hub.docker.com/r/viict/docker-flow-letsencrypt/).
 
 ## How does it work
 
 This docker image uses certbot-auto, curl and cron to create and renew your Let’s Encrypt certificates.
 Through environment variables you set the domains certbot-auto should create certificates for, which e-mail is used by Let’s Encrypt when you lose the account and want to get it back, the cronjob starting times and the dns-name of [Docker Flow: Proxy](https://github.com/vfarcic/docker-flow-proxy).
 
-When the image starts, the [certbot.sh](https://github.com/hamburml/docker-flow-letsencrypt/blob/master/certbot.sh) script runs and creates/renews the certificates and creates /etc/cron.d/renewcron. The script also runs [renewAndSendToProxy.sh](https://github.com/hamburml/docker-flow-letsencrypt/blob/master/renewAndSendToProxy.sh) which combines the cert.pem, chain.pem and privkey.pem to a domainname.combined.pem file and uploads your cert via curl to your proxy.
+When the image starts, the [certbot.sh](https://github.com/viict/docker-flow-letsencrypt/blob/master/certbot.sh) script runs and creates/renews the certificates and creates /etc/cron.d/renewcron. The script also runs [renewAndSendToProxy.sh](https://github.com/viict/docker-flow-letsencrypt/blob/master/renewAndSendToProxy.sh) which combines the cert.pem, chain.pem and privkey.pem to a domainname.combined.pem file and uploads your cert via curl to your proxy.
 
-[renewAndSendToProxy.sh](https://github.com/hamburml/docker-flow-letsencrypt/blob/master/renewAndSendToProxy.sh) also calls certbot-auto renew because this script is run by default two times a day (03:00 and 15:00 UTC) via /etc/cron.d/renewcron. You can overwrite this behavior by changing CERTBOT_CRON_RENEW environment variable. This script also creates backups of the /etc/letsencrypt folder which are stored in /etc/letsencrypt/backup. Don't worry, the backup folder is excluded from the tar command.
+[renewAndSendToProxy.sh](https://github.com/viict/docker-flow-letsencrypt/blob/master/renewAndSendToProxy.sh) also calls certbot-auto renew because this script is run by default two times a day (03:00 and 15:00 UTC) via /etc/cron.d/renewcron. You can overwrite this behavior by changing CERTBOT_CRON_RENEW environment variable. This script also creates backups of the /etc/letsencrypt folder which are stored in /etc/letsencrypt/backup. Don't worry, the backup folder is excluded from the tar command.
 
-As you can see the output is piped into /var/log/dockeroutput.log. This file is created in the [Dockerfile](https://github.com/hamburml/docker-flow-letsencrypt/blob/master/Dockerfile) and just redirects directly to the docker logs output. The logs are also colorized so that you are able to find the important information without hesitation.
+As you can see the output is piped into /var/log/dockeroutput.log. This file is created in the [Dockerfile](https://github.com/viict/docker-flow-letsencrypt/blob/master/Dockerfile) and just redirects directly to the docker logs output. The logs are also colorized so that you are able to find the important information without hesitation.
 
 If you only want to test this image you should add ```-e CERTBOTMODE="staging"``` when creating the service to use the staging mode of Let’s Encrypt. Remember that the certificate is not trusted so you will get a warning inside your browser.
 
@@ -36,12 +36,12 @@ Certbot-auto is called with  ```--rsa-key-size 4096 --redirect --hsts --staple-o
 
 ## Usage
 
-### [Build](https://github.com/hamburml/docker-flow-letsencrypt/blob/master/build)
+### [Build](https://github.com/viict/docker-flow-letsencrypt/blob/master/build)
 ```
-docker build -t hamburml/docker-flow-letsencrypt .
+docker build -t viict/docker-flow-letsencrypt .
 ```
 
-### [Run](https://github.com/hamburml/docker-flow-letsencrypt/blob/master/run)
+### [Run](https://github.com/viict/docker-flow-letsencrypt/blob/master/run)
 
 Attention! If you use local storage, create the `/etc/letsencrypt` folder before you start the service.
 
@@ -56,10 +56,11 @@ docker service create --name letsencrypt-companion \
     -e CERTBOT_EMAIL="your.mail@mail.de" \
     -e PROXY_ADDRESS="proxy" \
     -e CERTBOT_CRON_RENEW="('0 3 * * *' '0 15 * * *')"\
+    -e DRYRUN_CHECK="false"\
     --network proxy \
     --mount type=bind,source=/etc/letsencrypt,destination=/etc/letsencrypt \
     --constraint 'node.id==<nodeId>' \
-    --replicas 1 hamburml/docker-flow-letsencrypt:latest
+    --replicas 1 viict/docker-flow-letsencrypt:latest
 ```
 
 The `aclName` label is optional. However it helps the proxy to order the ACls and make sure that the companion rule is above other service rules since the rules are added sequentially so ACME verification works.
@@ -73,7 +74,7 @@ services:
 
   # Let's Encrypt Companion
   letsencrypt-companion:
-    image: hamburml/docker-flow-letsencrypt:latest
+    image: viict/docker-flow-letsencrypt:latest
     networks:
       - proxy
     environment:
@@ -82,8 +83,9 @@ services:
       - CERTBOT_EMAIL=your.mail@mail.de
       - PROXY_ADDRESS=proxy
       - CERTBOT_CRON_RENEW=('0 3 * * *' '0 15 * * *')
+      - DRYRUN_CHECK=false
     volumes:
-          - /etc/letsencrypt:/etc/letsencrypt
+      - /etc/letsencrypt:/etc/letsencrypt
     deploy:
       labels:
         - com.df.servicePath=/.well-known/acme-challenge
@@ -159,8 +161,7 @@ Certificate not yet due for renewal; no action taken.
 
 ## Feedback
 
+This project has been started from *hamburml/docker-flow-letsencrypt*
+
 Thanks for using docker-flow-letsencrypt. If you have problems or some ideas how this can be made better feel free to create a new issue. Thanks to Viktor Farcic for his help and docker flow :)
 
-<a href='https://ko-fi.com/A130K9R' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=f' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a> 
-
-I am a student and I have founded a game-development startup with other students. My income is relatively low so I really appreciate every cup of coffee. Thank you :)

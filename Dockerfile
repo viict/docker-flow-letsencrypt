@@ -1,5 +1,5 @@
 #use 16.04 lts, install certbot-auto to get newest certbot version
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 #set default env variables
 ENV DEBIAN_FRONTEND=noninteractive \
